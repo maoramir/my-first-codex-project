@@ -240,6 +240,7 @@
     const tbody = table.querySelector("tbody");
 
     const toNum = (value) => (value === "" ? null : Number(value));
+    const RENDER_API_BASE = "https://car-matcher-api.onrender.com";
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -248,7 +249,9 @@
       tbody.innerHTML = "";
 
       const data = new FormData(form);
-      const endpoint = "/search";
+      const isGithubPages = window.location.hostname.endsWith("github.io");
+      const apiBase = isGithubPages ? RENDER_API_BASE : window.location.origin;
+      const endpoint = `${apiBase.replace(/\/$/, "")}/search`;
 
       const payload = {
         hard_filters: {

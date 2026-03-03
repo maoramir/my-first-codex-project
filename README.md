@@ -26,9 +26,10 @@ Open `http://127.0.0.1:8000/docs` for API docs.
 1. In GitHub repo settings → **Pages**.
 2. Source: deploy from branch `main`, folder `/docs`.
 3. Your public URL will look like:
-   - `https://<your-username>.github.io/my-first-codex-project/`
-4. Open the site and set the **API URL** field to your Render backend URL.
+   - `https://maoramir.github.io/my-first-codex-project/`
+4. Open the site. When loaded from GitHub Pages, it calls the Render backend automatically.
 
 ### 3) CORS
 Set backend env var `ALLOWED_ORIGINS` to your GitHub Pages domain, e.g.:
-`https://<your-username>.github.io`
+`https://maoramir.github.io`
+

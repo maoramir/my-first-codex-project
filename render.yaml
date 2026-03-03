@@ -6,4 +6,5 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: ALLOWED_ORIGINS
-        value: https://<your-github-username>.github.io
+        value: https://maoramir.github.io
+

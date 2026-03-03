@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Car Matcher</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f7fb; margin: 0; }
+    .container { max-width: 980px; margin: 24px auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+    h1 { margin-top: 0; }
+    form { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+    label { display: flex; flex-direction: column; font-size: 14px; color: #222; }
+    input { margin-top: 6px; padding: 8px; border: 1px solid #c9ced6; border-radius: 8px; }
+    button { grid-column: 1 / -1; padding: 10px 14px; border: none; border-radius: 8px; background: #0d6efd; color: #fff; font-size: 16px; cursor: pointer; }
+    button:hover { background: #0b5ed7; }
+    .status { margin-top: 14px; font-size: 14px; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+    th, td { border-bottom: 1px solid #e6e9ef; padding: 8px; text-align: right; font-size: 14px; }
+    th { background: #f1f4f8; }
+    a { color: #0d6efd; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>חיפוש מודעות רכב (CSV)</h1>
+    <form id="searchForm">
+      <label>יצרן
+        <input name="manufacturer" value="Toyota" required />
+      </label>
+      <label>דגם
+        <input name="model" value="Corolla" required />
+      </label>
+      <label>גיר
+        <input name="gearbox" value="automatic" />
+      </label>
+      <label>דלק
+        <input name="fuel_type" value="hybrid" />
+      </label>
+      <label>שנה מינימלית
+        <input name="year_min" type="number" value="2019" />
+      </label>
+      <label>שנה מקסימלית
+        <input name="year_max" type="number" value="2022" />
+      </label>
+      <label>מחיר מינימלי
+        <input name="price_min" type="number" value="70000" />
+      </label>
+      <label>מחיר מקסימלי
+        <input name="price_max" type="number" value="120000" />
+      </label>
+      <label>ק"מ מקסימלי
+        <input name="km_max" type="number" value="90000" />
+      </label>
+      <label>אזור מועדף
+        <input name="area" value="מרכז" />
+      </label>
+      <label>מספר תוצאות
+        <input name="result_limit" type="number" value="10" min="1" max="50" />
+      </label>
+      <button type="submit">חפש מודעות</button>
+    </form>
+
+    <div class="status" id="status"></div>
+    <table id="resultsTable" hidden>
+      <thead>
+        <tr>
+          <th>ציון</th><th>כותרת</th><th>מחיר</th><th>שנה</th><th>ק"מ</th><th>אזור</th><th>קישור</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const form = document.getElementById('searchForm');
+    const statusEl = document.getElementById('status');
+    const table = document.getElementById('resultsTable');
+    const tbody = table.querySelector('tbody');
+
+    const toNum = (value) => value === '' ? null : Number(value);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      statusEl.textContent = 'מחפש...';
+      table.hidden = true;
+      tbody.innerHTML = '';
+
+      const data = new FormData(form);
+      const payload = {
+        hard_filters: {
+          manufacturer: data.get('manufacturer'),
+          model: data.get('model'),
+          gearbox: data.get('gearbox') || null,
+          fuel_type: data.get('fuel_type') || null,
+        },
+        range_filters: {
+          year_min: toNum(data.get('year_min')),
+          year_max: toNum(data.get('year_max')),
+          price_min: toNum(data.get('price_min')),
+          price_max: toNum(data.get('price_max')),
+          km_max: toNum(data.get('km_max')),
+        },
+        preferences: {
+          area: data.get('area') || null,
+        },
+        result_limit: toNum(data.get('result_limit')) || 10,
+      };
+
+      try {
+        const res = await fetch('/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+
+        if (!res.ok) {
+          throw new Error(json.detail || 'שגיאה לא צפויה');
+        }
+
+        statusEl.textContent = `נמצאו ${json.count} תוצאות`;
+
+        json.results.forEach((item) => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${item.similarity_score ?? ''}</td>
+            <td>${item.title ?? ''}</td>
+            <td>${item.price ?? ''}</td>
+            <td>${item.year ?? ''}</td>
+            <td>${item.km ?? ''}</td>
+            <td>${item.area ?? ''}</td>
+            <td><a href="${item.url}" target="_blank" rel="noopener">למודעה</a></td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        table.hidden = false;
+      } catch (err) {
+        statusEl.textContent = `שגיאה: ${err.message}`;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+ad_id,manufacturer,model,year,price,km,gearbox,fuel_type,area,owners,title,url
+1,Toyota,Corolla,2020,98000,62000,automatic,hybrid,מרכז,1,Toyota Corolla 2020 היברידית,https://example.com/ad/1
+2,Toyota,Corolla,2019,89000,84000,automatic,hybrid,שפלה,2,Toyota Corolla שמורה מאוד,https://example.com/ad/2
+3,Toyota,Corolla,2022,119000,25000,automatic,hybrid,חיפה,1,Corolla 2022 יד ראשונה,https://example.com/ad/3
+4,Toyota,Corolla,2018,76000,110000,automatic,hybrid,מרכז,3,Corolla 2018 מצב טוב,https://example.com/ad/4
+5,Hyundai,Elantra,2020,95000,50000,automatic,gasoline,מרכז,1,Elantra 2020,https://example.com/ad/5

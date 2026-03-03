@@ -5,71 +5,243 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Car Matcher</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f5f7fb; margin: 0; }
-    .container { max-width: 980px; margin: 24px auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
-    h1 { margin-top: 0; }
-    form { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
-    label { display: flex; flex-direction: column; font-size: 14px; color: #222; }
-    input { margin-top: 6px; padding: 8px; border: 1px solid #c9ced6; border-radius: 8px; }
-    button { grid-column: 1 / -1; padding: 10px 14px; border: none; border-radius: 8px; background: #0d6efd; color: #fff; font-size: 16px; cursor: pointer; }
-    button:hover { background: #0b5ed7; }
-    .status { margin-top: 14px; font-size: 14px; color: #333; }
-    .hint { margin: 8px 0 2px; font-size: 12px; color: #666; }
-    table { width: 100%; border-collapse: collapse; margin-top: 18px; }
-    th, td { border-bottom: 1px solid #e6e9ef; padding: 8px; text-align: right; font-size: 14px; }
-    th { background: #f1f4f8; }
-    a { color: #0d6efd; }
+    :root {
+      --bg-start: #f0f4ff;
+      --bg-end: #e6fff8;
+      --card: #ffffff;
+      --text: #112136;
+      --muted: #5c6f86;
+      --line: #d6e0ee;
+      --primary: #007a66;
+      --primary-hover: #006554;
+      --soft: #f4f8ff;
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      color: var(--text);
+      background: linear-gradient(140deg, var(--bg-start), var(--bg-end));
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: calc(var(--radius) + 4px);
+      box-shadow: 0 20px 50px rgba(19, 49, 76, 0.14);
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 3vw, 34px);
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      margin: 0 0 22px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid #c5d2e3;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 14px;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 122, 102, 0.15);
+    }
+
+    button {
+      width: 100%;
+      margin-top: 8px;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      background: linear-gradient(90deg, var(--primary), #00957d);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease, filter 0.2s ease;
+    }
+
+    button:hover {
+      filter: brightness(0.97);
+      transform: translateY(-1px);
+    }
+
+    .hint {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .status {
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    table {
+      width: 100%;
+      margin-top: 16px;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    th, td {
+      text-align: right;
+      border-bottom: 1px solid #e5ecf5;
+      padding: 10px 8px;
+      font-size: 14px;
+    }
+
+    th {
+      background: #ecf4ff;
+      font-weight: 700;
+    }
+
+    tr:hover td {
+      background: #f8fbff;
+    }
+
+    a {
+      color: var(--primary-hover);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 900px) {
+      .form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 16px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      th, td {
+        font-size: 13px;
+        padding: 8px 6px;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>חיפוש מודעות רכב (CSV)</h1>
+    <h1>חיפוש מודעות רכב</h1>
+    <p class="subtitle">סינון חכם לפי יצרן, דגם, מחיר, שנה וטווח קילומטראז׳.</p>
+
     <form id="searchForm">
-      <label>כתובת API
-        <input name="api_base" value="" placeholder="ריק = אותו שרת" />
-      </label>
-      <label>יצרן
-        <input name="manufacturer" value="Toyota" required />
-      </label>
-      <label>דגם
-        <input name="model" value="Corolla" required />
-      </label>
-      <label>גיר
-        <input name="gearbox" value="automatic" />
-      </label>
-      <label>דלק
-        <input name="fuel_type" value="hybrid" />
-      </label>
-      <label>שנה מינימלית
-        <input name="year_min" type="number" value="2019" />
-      </label>
-      <label>שנה מקסימלית
-        <input name="year_max" type="number" value="2022" />
-      </label>
-      <label>מחיר מינימלי
-        <input name="price_min" type="number" value="70000" />
-      </label>
-      <label>מחיר מקסימלי
-        <input name="price_max" type="number" value="120000" />
-      </label>
-      <label>ק"מ מקסימלי
-        <input name="km_max" type="number" value="90000" />
-      </label>
-      <label>אזור מועדף
-        <input name="area" value="מרכז" />
-      </label>
-      <label>מספר תוצאות
-        <input name="result_limit" type="number" value="10" min="1" max="50" />
-      </label>
+      <div class="form-grid">
+        <label>כתובת API
+          <input name="api_base" value="" placeholder="ריק = אותו שרת" />
+        </label>
+        <label>יצרן
+          <input name="manufacturer" value="Toyota" required />
+        </label>
+        <label>דגם
+          <input name="model" value="Corolla" required />
+        </label>
+        <label>גיר
+          <input name="gearbox" value="automatic" />
+        </label>
+        <label>דלק
+          <input name="fuel_type" value="hybrid" />
+        </label>
+        <label>אזור מועדף
+          <input name="area" value="מרכז" />
+        </label>
+        <label>שנה מינימלית
+          <input name="year_min" type="number" value="2019" />
+        </label>
+        <label>שנה מקסימלית
+          <input name="year_max" type="number" value="2022" />
+        </label>
+        <label>מחיר מינימלי
+          <input name="price_min" type="number" value="70000" />
+        </label>
+        <label>מחיר מקסימלי
+          <input name="price_max" type="number" value="120000" />
+        </label>
+        <label>ק״מ מינימלי
+          <input name="km_min" type="number" value="0" min="0" />
+        </label>
+        <label>ק״מ מקסימלי
+          <input name="km_max" type="number" value="90000" min="0" />
+        </label>
+        <label>מספר תוצאות
+          <input name="result_limit" type="number" value="10" min="1" max="50" />
+        </label>
+      </div>
+
       <button type="submit">חפש מודעות</button>
     </form>
-    <div class="hint">אם האתר ירוץ ב־GitHub Pages, הדבק כאן את ה־URL של ה־API.</div>
 
+    <div class="hint">אם האתר רץ ב-GitHub Pages, הדבק כאן את כתובת ה-API.</div>
     <div class="status" id="status"></div>
+
     <table id="resultsTable" hidden>
       <thead>
         <tr>
-          <th>ציון</th><th>כותרת</th><th>מחיר</th><th>שנה</th><th>ק"מ</th><th>אזור</th><th>קישור</th>
+          <th>ציון</th>
+          <th>כותרת</th>
+          <th>מחיר</th>
+          <th>שנה</th>
+          <th>ק״מ</th>
+          <th>אזור</th>
+          <th>קישור</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -77,66 +249,67 @@
   </div>
 
   <script>
-    const form = document.getElementById('searchForm');
-    const statusEl = document.getElementById('status');
-    const table = document.getElementById('resultsTable');
-    const tbody = table.querySelector('tbody');
+    const form = document.getElementById("searchForm");
+    const statusEl = document.getElementById("status");
+    const table = document.getElementById("resultsTable");
+    const tbody = table.querySelector("tbody");
 
-    const toNum = (value) => value === '' ? null : Number(value);
+    const toNum = (value) => (value === "" ? null : Number(value));
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      statusEl.textContent = 'מחפש...';
+      statusEl.textContent = "מחפש...";
       table.hidden = true;
-      tbody.innerHTML = '';
+      tbody.innerHTML = "";
 
       const data = new FormData(form);
-      const apiBase = (data.get('api_base') || '').toString().trim();
-      const endpoint = `${apiBase.replace(/\/$/, '')}/search`.replace(/^\/search$/, '/search');
+      const apiBase = (data.get("api_base") || "").toString().trim();
+      const endpoint = `${apiBase.replace(/\/$/, "")}/search`.replace(/^\/search$/, "/search");
 
       const payload = {
         hard_filters: {
-          manufacturer: data.get('manufacturer'),
-          model: data.get('model'),
-          gearbox: data.get('gearbox') || null,
-          fuel_type: data.get('fuel_type') || null,
+          manufacturer: data.get("manufacturer"),
+          model: data.get("model"),
+          gearbox: data.get("gearbox") || null,
+          fuel_type: data.get("fuel_type") || null,
         },
         range_filters: {
-          year_min: toNum(data.get('year_min')),
-          year_max: toNum(data.get('year_max')),
-          price_min: toNum(data.get('price_min')),
-          price_max: toNum(data.get('price_max')),
-          km_max: toNum(data.get('km_max')),
+          year_min: toNum(data.get("year_min")),
+          year_max: toNum(data.get("year_max")),
+          price_min: toNum(data.get("price_min")),
+          price_max: toNum(data.get("price_max")),
+          km_min: toNum(data.get("km_min")),
+          km_max: toNum(data.get("km_max")),
         },
         preferences: {
-          area: data.get('area') || null,
+          area: data.get("area") || null,
         },
-        result_limit: toNum(data.get('result_limit')) || 10,
+        result_limit: toNum(data.get("result_limit")) || 10,
       };
 
       try {
         const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
         const json = await res.json();
 
         if (!res.ok) {
-          throw new Error(json.detail || 'שגיאה לא צפויה');
+          throw new Error(json.detail || "שגיאה לא צפויה");
         }
 
         statusEl.textContent = `נמצאו ${json.count} תוצאות`;
 
         json.results.forEach((item) => {
-          const tr = document.createElement('tr');
+          const tr = document.createElement("tr");
           tr.innerHTML = `
-            <td>${item.similarity_score ?? ''}</td>
-            <td>${item.title ?? ''}</td>
-            <td>${item.price ?? ''}</td>
-            <td>${item.year ?? ''}</td>
-            <td>${item.km ?? ''}</td>
-            <td>${item.area ?? ''}</td>
+            <td>${item.similarity_score ?? ""}</td>
+            <td>${item.title ?? ""}</td>
+            <td>${item.price ?? ""}</td>
+            <td>${item.year ?? ""}</td>
+            <td>${item.km ?? ""}</td>
+            <td>${item.area ?? ""}</td>
             <td><a href="${item.url}" target="_blank" rel="noopener">למודעה</a></td>
           `;
           tbody.appendChild(tr);

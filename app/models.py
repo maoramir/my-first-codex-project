@@ -8,6 +8,7 @@ class HardFilters(BaseModel):
     model: str
     gearbox: Optional[str] = None
     fuel_type: Optional[str] = None
+    engine_volume: Optional[float] = None
 
 
 class RangeFilters(BaseModel):
@@ -28,5 +29,4 @@ class Preferences(BaseModel):
 class SearchRequest(BaseModel):
     hard_filters: HardFilters
     range_filters: RangeFilters = Field(default_factory=RangeFilters)
-    preferences: Preferences = Field(default_factory=Preferences)
     result_limit: int = 10

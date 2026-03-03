@@ -30,6 +30,8 @@ def load_ads(csv_path: str) -> pd.DataFrame:
 
     for col in ["year", "price", "km", "owners"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
+    if "engine_volume" in df.columns:
+        df["engine_volume"] = pd.to_numeric(df["engine_volume"], errors="coerce")
 
     return df.dropna(subset=["year", "price", "km"])
 
@@ -46,6 +48,10 @@ def apply_hard_filters(df: pd.DataFrame, req: SearchRequest) -> pd.DataFrame:
 
     if hf.fuel_type:
         out = out[out["fuel_type"].str.lower() == hf.fuel_type.strip().lower()]
+
+    # Apply this filter only when the source CSV provides engine_volume.
+    if hf.engine_volume is not None and "engine_volume" in out.columns:
+        out = out[(out["engine_volume"] - hf.engine_volume).abs() <= 0.2]
 
     return out
 
@@ -85,21 +91,7 @@ def score_ads(df: pd.DataFrame, req: SearchRequest) -> pd.DataFrame:
     if df.empty:
         return df
 
-    rf = req.range_filters
-    pref = req.preferences
     scored = df.copy()
-
-    if rf.price_min is not None and rf.price_max is not None:
-        target_price = (rf.price_min + rf.price_max) / 2.0
-    elif rf.price_max is not None:
-        target_price = rf.price_max
-    elif rf.price_min is not None:
-        target_price = rf.price_min
-    else:
-        target_price = scored["price"].median()
-
-    max_price_diff = (scored["price"] - target_price).abs().max() or 1.0
-    scored["price_score"] = 1 - ((scored["price"] - target_price).abs() / max_price_diff)
 
     y_min, y_max = scored["year"].min(), scored["year"].max()
     scored["year_score"] = scored["year"].apply(lambda v: _safe_norm(v, y_min, y_max))
@@ -107,16 +99,14 @@ def score_ads(df: pd.DataFrame, req: SearchRequest) -> pd.DataFrame:
     k_min, k_max = scored["km"].min(), scored["km"].max()
     scored["km_score"] = scored["km"].apply(lambda v: 1 - _safe_norm(v, k_min, k_max))
 
-    if pref.area:
-        scored["area_score"] = (scored["area"].str.lower() == pref.area.strip().lower()).astype(float)
-    else:
-        scored["area_score"] = 0.0
+    owners_series = scored["owners"].fillna(scored["owners"].max())
+    o_min, o_max = owners_series.min(), owners_series.max()
+    scored["owners_score"] = owners_series.apply(lambda v: 1 - _safe_norm(v, o_min, o_max))
 
     scored["similarity_score"] = (
-        0.40 * scored["price_score"]
-        + 0.30 * scored["year_score"]
-        + 0.25 * scored["km_score"]
-        + 0.05 * scored["area_score"]
+        0.45 * scored["km_score"]
+        + 0.35 * scored["year_score"]
+        + 0.20 * scored["owners_score"]
     )
 
     return scored.sort_values("similarity_score", ascending=False)

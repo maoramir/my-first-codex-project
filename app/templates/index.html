@@ -55,7 +55,7 @@
 
     .form-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
       margin-bottom: 12px;
     }
@@ -156,12 +156,6 @@
       text-decoration: underline;
     }
 
-    @media (max-width: 900px) {
-      .form-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
     @media (max-width: 640px) {
       .container {
         padding: 16px;
@@ -180,56 +174,47 @@
 </head>
 <body>
   <div class="container">
-    <h1>חיפוש מודעות רכב</h1>
-    <p class="subtitle">סינון חכם לפי יצרן, דגם, מחיר, שנה וטווח קילומטראז׳.</p>
+    <h1>בדיקת עסקת רכב</h1>
+    <p class="subtitle">ציון העסקה מתבסס על ק"מ, שנה ובעלות. יצרן ודגם חייבים להיות זהים.</p>
 
     <form id="searchForm">
       <div class="form-grid">
-        <label>כתובת API
-          <input name="api_base" value="" placeholder="ריק = אותו שרת" />
-        </label>
         <label>יצרן
           <input name="manufacturer" value="Toyota" required />
         </label>
         <label>דגם
           <input name="model" value="Corolla" required />
         </label>
-        <label>גיר
+        <label>מחיר
+          <input name="price" type="number" value="120000" min="0" />
+        </label>
+        <label>ק"מ
+          <input name="km" type="number" value="90000" min="0" />
+        </label>
+        <label>נפח מנוע
+          <input name="engine_volume" type="number" step="0.1" placeholder="לדוגמה 1.6" />
+        </label>
+        <label>סוג מנוע
+          <input name="engine_type" value="hybrid" placeholder="בנזין / היברידי / דיזל / חשמלי" />
+        </label>
+        <label>תיבת הילוכים
           <input name="gearbox" value="automatic" />
         </label>
-        <label>דלק
-          <input name="fuel_type" value="hybrid" />
+        <label>בעלות
+          <input name="ownership" type="number" value="1" min="0" />
         </label>
-        <label>אזור מועדף
-          <input name="area" value="מרכז" />
-        </label>
-        <label>שנה מינימלית
-          <input name="year_min" type="number" value="2019" />
-        </label>
-        <label>שנה מקסימלית
-          <input name="year_max" type="number" value="2022" />
-        </label>
-        <label>מחיר מינימלי
-          <input name="price_min" type="number" value="70000" />
-        </label>
-        <label>מחיר מקסימלי
-          <input name="price_max" type="number" value="120000" />
-        </label>
-        <label>ק״מ מינימלי
-          <input name="km_min" type="number" value="0" min="0" />
-        </label>
-        <label>ק״מ מקסימלי
-          <input name="km_max" type="number" value="90000" min="0" />
+        <label>שנה
+          <input name="year" type="number" value="2019" />
         </label>
         <label>מספר תוצאות
           <input name="result_limit" type="number" value="10" min="1" max="50" />
         </label>
       </div>
 
-      <button type="submit">חפש מודעות</button>
+      <button type="submit">בדוק עסקה</button>
     </form>
 
-    <div class="hint">אם האתר רץ ב-GitHub Pages, הדבק כאן את כתובת ה-API.</div>
+    <div class="hint">הערה: סינון נפח מנוע יעבוד כאשר קיימת עמודת engine_volume בקובץ הנתונים.</div>
     <div class="status" id="status"></div>
 
     <table id="resultsTable" hidden>
@@ -239,8 +224,8 @@
           <th>כותרת</th>
           <th>מחיר</th>
           <th>שנה</th>
-          <th>ק״מ</th>
-          <th>אזור</th>
+          <th>ק"מ</th>
+          <th>בעלות</th>
           <th>קישור</th>
         </tr>
       </thead>
@@ -263,26 +248,21 @@
       tbody.innerHTML = "";
 
       const data = new FormData(form);
-      const apiBase = (data.get("api_base") || "").toString().trim();
-      const endpoint = `${apiBase.replace(/\/$/, "")}/search`.replace(/^\/search$/, "/search");
+      const endpoint = "/search";
 
       const payload = {
         hard_filters: {
           manufacturer: data.get("manufacturer"),
           model: data.get("model"),
           gearbox: data.get("gearbox") || null,
-          fuel_type: data.get("fuel_type") || null,
+          fuel_type: data.get("engine_type") || null,
+          engine_volume: toNum(data.get("engine_volume")),
         },
         range_filters: {
-          year_min: toNum(data.get("year_min")),
-          year_max: toNum(data.get("year_max")),
-          price_min: toNum(data.get("price_min")),
-          price_max: toNum(data.get("price_max")),
-          km_min: toNum(data.get("km_min")),
-          km_max: toNum(data.get("km_max")),
-        },
-        preferences: {
-          area: data.get("area") || null,
+          year_min: toNum(data.get("year")),
+          price_max: toNum(data.get("price")),
+          km_max: toNum(data.get("km")),
+          owners_max: toNum(data.get("ownership")),
         },
         result_limit: toNum(data.get("result_limit")) || 10,
       };
@@ -309,7 +289,7 @@
             <td>${item.price ?? ""}</td>
             <td>${item.year ?? ""}</td>
             <td>${item.km ?? ""}</td>
-            <td>${item.area ?? ""}</td>
+            <td>${item.owners ?? ""}</td>
             <td><a href="${item.url}" target="_blank" rel="noopener">למודעה</a></td>
           `;
           tbody.appendChild(tr);

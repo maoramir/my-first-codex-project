@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Car Matcher</title>
+  <title>בדיקת עסקת רכב</title>
   <style>
     :root {
       --bg-start: #f0f4ff;
@@ -18,9 +18,7 @@
       --radius: 16px;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -100,12 +98,6 @@
       font-size: 16px;
       font-weight: 700;
       cursor: pointer;
-      transition: transform 0.12s ease, filter 0.2s ease;
-    }
-
-    button:hover {
-      filter: brightness(0.97);
-      transform: translateY(-1px);
     }
 
     .hint {
@@ -125,8 +117,8 @@
       margin-top: 16px;
       border-collapse: collapse;
       border: 1px solid var(--line);
-      overflow: hidden;
       border-radius: 12px;
+      overflow: hidden;
       background: #fff;
     }
 
@@ -142,40 +134,22 @@
       font-weight: 700;
     }
 
-    tr:hover td {
-      background: #f8fbff;
-    }
-
     a {
       color: var(--primary-hover);
       text-decoration: none;
       font-weight: 600;
     }
 
-    a:hover {
-      text-decoration: underline;
-    }
-
     @media (max-width: 640px) {
-      .container {
-        padding: 16px;
-      }
-
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-
-      th, td {
-        font-size: 13px;
-        padding: 8px 6px;
-      }
+      .container { padding: 16px; }
+      .form-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>בדיקת עסקת רכב</h1>
-    <p class="subtitle">ציון העסקה מתבסס על ק"מ, שנה ובעלות. יצרן ודגם חייבים להיות זהים.</p>
+    <p class="subtitle">רץ ישירות מ-GitHub Pages עם קובץ נתונים מקומי (ללא Render).</p>
 
     <form id="searchForm">
       <div class="form-grid">
@@ -195,7 +169,7 @@
           <input name="engine_volume" type="number" step="0.1" placeholder="לדוגמה 1.6" />
         </label>
         <label>סוג מנוע
-          <input name="engine_type" value="hybrid" placeholder="בנזין / היברידי / דיזל / חשמלי" />
+          <input name="engine_type" value="hybrid" />
         </label>
         <label>תיבת הילוכים
           <input name="gearbox" value="automatic" />
@@ -210,11 +184,10 @@
           <input name="result_limit" type="number" value="10" min="1" max="50" />
         </label>
       </div>
-
       <button type="submit">בדוק עסקה</button>
     </form>
 
-    <div class="hint">הערה: סינון נפח מנוע יעבוד כאשר קיימת עמודת engine_volume בקובץ הנתונים.</div>
+    <div class="hint">שדות יצרן ודגם הם חובה וזהות מלאה. ציון מבוסס על ק"מ, שנה ובעלות.</div>
     <div class="status" id="status"></div>
 
     <table id="resultsTable" hidden>
@@ -234,73 +207,180 @@
   </div>
 
   <script>
+    const CSV_URL = "./data/car_ads.csv";
     const form = document.getElementById("searchForm");
     const statusEl = document.getElementById("status");
     const table = document.getElementById("resultsTable");
     const tbody = table.querySelector("tbody");
+    let adsPromise = null;
 
     const toNum = (value) => (value === "" ? null : Number(value));
-    const RENDER_API_BASE = "https://car-matcher-api.onrender.com";
+    const norm = (value) => (value ?? "").toString().trim().toLowerCase();
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      statusEl.textContent = "מחפש...";
+    function safeNorm(value, minValue, maxValue) {
+      if (maxValue <= minValue) return 1;
+      return (value - minValue) / (maxValue - minValue);
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i += 1) {
+        const ch = text[i];
+        const next = text[i + 1];
+
+        if (ch === "\"") {
+          if (inQuotes && next === "\"") {
+            cell += "\"";
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+
+        if (ch === "," && !inQuotes) {
+          row.push(cell);
+          cell = "";
+          continue;
+        }
+
+        if ((ch === "\n" || ch === "\r") && !inQuotes) {
+          if (ch === "\r" && next === "\n") i += 1;
+          row.push(cell);
+          if (row.some((v) => v.length > 0)) rows.push(row);
+          row = [];
+          cell = "";
+          continue;
+        }
+
+        cell += ch;
+      }
+
+      if (cell.length > 0 || row.length > 0) {
+        row.push(cell);
+        if (row.some((v) => v.length > 0)) rows.push(row);
+      }
+
+      if (rows.length === 0) return [];
+      const headers = rows[0];
+      return rows.slice(1).map((r) => {
+        const obj = {};
+        headers.forEach((h, idx) => {
+          obj[h] = r[idx] ?? "";
+        });
+        return obj;
+      });
+    }
+
+    async function loadAds() {
+      if (!adsPromise) {
+        adsPromise = fetch(CSV_URL)
+          .then((res) => {
+            if (!res.ok) throw new Error("לא ניתן לטעון קובץ נתונים");
+            return res.text();
+          })
+          .then((csvText) => parseCsv(csvText))
+          .then((rows) =>
+            rows.map((r) => ({
+              ...r,
+              year: toNum(r.year),
+              price: toNum(r.price),
+              km: toNum(r.km),
+              owners: toNum(r.owners),
+              engine_volume: toNum(r.engine_volume),
+            }))
+          );
+      }
+      return adsPromise;
+    }
+
+    function renderResults(items) {
+      tbody.innerHTML = "";
+      items.forEach((item) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${(item.similarity_score ?? 0).toFixed(4)}</td>
+          <td>${item.title ?? ""}</td>
+          <td>${item.price ?? ""}</td>
+          <td>${item.year ?? ""}</td>
+          <td>${item.km ?? ""}</td>
+          <td>${item.owners ?? ""}</td>
+          <td><a href="${item.url}" target="_blank" rel="noopener">למודעה</a></td>
+        `;
+        tbody.appendChild(tr);
+      });
+      table.hidden = items.length === 0;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      statusEl.textContent = "טוען ומחשב...";
       table.hidden = true;
       tbody.innerHTML = "";
 
-      const data = new FormData(form);
-      const isGithubPages = window.location.hostname.endsWith("github.io");
-      const apiBase = isGithubPages ? RENDER_API_BASE : window.location.origin;
-      const endpoint = `${apiBase.replace(/\/$/, "")}/search`;
-
-      const payload = {
-        hard_filters: {
-          manufacturer: data.get("manufacturer"),
-          model: data.get("model"),
-          gearbox: data.get("gearbox") || null,
-          fuel_type: data.get("engine_type") || null,
-          engine_volume: toNum(data.get("engine_volume")),
-        },
-        range_filters: {
-          year_min: toNum(data.get("year")),
-          price_max: toNum(data.get("price")),
-          km_max: toNum(data.get("km")),
-          owners_max: toNum(data.get("ownership")),
-        },
-        result_limit: toNum(data.get("result_limit")) || 10,
-      };
-
       try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const json = await res.json();
+        const rows = await loadAds();
+        const fd = new FormData(form);
+        const manufacturer = norm(fd.get("manufacturer"));
+        const model = norm(fd.get("model"));
+        const price = toNum(fd.get("price"));
+        const km = toNum(fd.get("km"));
+        const year = toNum(fd.get("year"));
+        const ownership = toNum(fd.get("ownership"));
+        const gearbox = norm(fd.get("gearbox"));
+        const engineType = norm(fd.get("engine_type"));
+        const engineVolume = toNum(fd.get("engine_volume"));
+        const limit = Math.max(1, Math.min(toNum(fd.get("result_limit")) || 10, 50));
 
-        if (!res.ok) {
-          throw new Error(json.detail || "שגיאה לא צפויה");
+        let filtered = rows.filter((r) => {
+          if (norm(r.manufacturer) !== manufacturer) return false;
+          if (norm(r.model) !== model) return false;
+          if (price !== null && !(r.price <= price)) return false;
+          if (km !== null && !(r.km <= km)) return false;
+          if (year !== null && !(r.year >= year)) return false;
+          if (ownership !== null && !(r.owners <= ownership)) return false;
+          if (gearbox && norm(r.gearbox) !== gearbox) return false;
+          if (engineType && norm(r.fuel_type) !== engineType) return false;
+          if (engineVolume !== null && r.engine_volume !== null) {
+            if (Math.abs(r.engine_volume - engineVolume) > 0.2) return false;
+          }
+          return true;
+        });
+
+        if (filtered.length === 0) {
+          statusEl.textContent = "לא נמצאו תוצאות";
+          renderResults([]);
+          return;
         }
 
-        statusEl.textContent = `נמצאו ${json.count} תוצאות`;
+        const minYear = Math.min(...filtered.map((r) => r.year));
+        const maxYear = Math.max(...filtered.map((r) => r.year));
+        const minKm = Math.min(...filtered.map((r) => r.km));
+        const maxKm = Math.max(...filtered.map((r) => r.km));
+        const ownersForRange = filtered.map((r) => (r.owners ?? 99));
+        const minOwners = Math.min(...ownersForRange);
+        const maxOwners = Math.max(...ownersForRange);
 
-        json.results.forEach((item) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${item.similarity_score ?? ""}</td>
-            <td>${item.title ?? ""}</td>
-            <td>${item.price ?? ""}</td>
-            <td>${item.year ?? ""}</td>
-            <td>${item.km ?? ""}</td>
-            <td>${item.owners ?? ""}</td>
-            <td><a href="${item.url}" target="_blank" rel="noopener">למודעה</a></td>
-          `;
-          tbody.appendChild(tr);
-        });
+        filtered = filtered
+          .map((r) => {
+            const ownersValue = r.owners ?? maxOwners;
+            const yearScore = safeNorm(r.year, minYear, maxYear);
+            const kmScore = 1 - safeNorm(r.km, minKm, maxKm);
+            const ownersScore = 1 - safeNorm(ownersValue, minOwners, maxOwners);
+            const similarityScore = 0.45 * kmScore + 0.35 * yearScore + 0.20 * ownersScore;
+            return { ...r, similarity_score: similarityScore };
+          })
+          .sort((a, b) => b.similarity_score - a.similarity_score)
+          .slice(0, limit);
 
-        table.hidden = false;
-      } catch (err) {
-        statusEl.textContent = `שגיאה: ${err.message}`;
+        statusEl.textContent = `נמצאו ${filtered.length} תוצאות`;
+        renderResults(filtered);
+      } catch (error) {
+        statusEl.textContent = `שגיאה: ${error.message}`;
       }
     });
   </script>
